@@ -143,6 +143,42 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
         api.utilities().randomUtils().randomString(length, characterSet)
     }
 
+    val BURP_REST_API_HOST = "127.0.0.1"
+    val BURP_REST_API_PORT = 1337
+    val BURP_REST_API_KEY = System.getenv("BURP_REST_API_KEY")
+
+    mcpTool<DoActiveScan>("Does an active scan on the input url") {
+        val allowed = runBlocking {
+            HttpRequestSecurity.checkHttpRequestPermission(targetHostname, targetPort, config, null, api)
+        }
+        if (!allowed) {
+            api.logging().logToOutput("MCP active scan denied: $targetHostname:$targetPort")
+            return@mcpTool "Active scan denied by Burp Suite"
+        }
+
+        var apiPathPrefix = ""
+        if (BURP_REST_API_KEY != null) {
+            apiPathPrefix = "/$BURP_REST_API_KEY"
+        }
+
+        val request = HttpRequest.httpRequest(
+            HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),
+            "\r\n" +
+                    "POST $apiPathPrefix/v0.1/scan HTTP/1.1\r\n" +
+                    "Host: 127.0.0.1:1337\r\n" +
+                    "Content-Type: application/json\r\n" +
+                    "Content-Length: 83\r\n" +
+                    "\r\n" +
+                    "{\r\n" +
+                    "  \"urls\": [\"$url\"]\r\n" +
+                    "}\r\n" +
+                    "\r\n"
+        )
+        val response = api.http().sendRequest(request)
+
+        return@mcpTool response.response().header("location").value()
+    }
+
     mcpTool(
         "output_project_options",
         "Outputs current project-level configuration in JSON format. You can use this to determine the schema for available config options."
@@ -375,3 +411,11 @@ data class GetProxyWebsocketHistory(override val count: Int, override val offset
 @Serializable
 data class GetProxyWebsocketHistoryRegex(val regex: String, override val count: Int, override val offset: Int) :
     Paginated
+
+@Serializable
+data class DoActiveScan(
+    val url: String,
+    override val targetHostname: String,
+    override val targetPort: Int,
+    override val usesHttps: Boolean
+) : HttpServiceParams
