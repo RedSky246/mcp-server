@@ -146,6 +146,7 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
     val BURP_REST_API_HOST = "127.0.0.1"
     val BURP_REST_API_PORT = 1337
     val BURP_REST_API_KEY = System.getenv("BURP_REST_API_KEY")
+    val SCAN_ID_HEADER_FIELD = "location"
 
     mcpTool<DoActiveScan>("Does an active scan on the input url") {
         val allowed = runBlocking {
@@ -156,27 +157,29 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
             return@mcpTool "Active scan denied by Burp Suite"
         }
 
-        var apiPathPrefix = ""
-        if (BURP_REST_API_KEY != null) {
-            apiPathPrefix = "/$BURP_REST_API_KEY"
-        }
-
-        val request = HttpRequest.httpRequest(
+        val apiPath = if (BURP_REST_API_KEY != null) "/$BURP_REST_API_KEY" else ""
+        var request = HttpRequest.httpRequest(
             HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),
             "\r\n" +
-                    "POST $apiPathPrefix/v0.1/scan HTTP/1.1\r\n" +
-                    "Host: 127.0.0.1:1337\r\n" +
+                    "POST $apiPath/v0.1/scan HTTP/1.1\r\n" +
+                    "Host: $BURP_REST_API_HOST:$BURP_REST_API_PORT\r\n" +
                     "Content-Type: application/json\r\n" +
-                    "Content-Length: 83\r\n" +
                     "\r\n" +
+                    "{\r\n" +
+                    "  \r\n" +
+                    "}\r\n" +
+                    "\r\n"
+        )
+        request = request.withBody(
+            "\r\n" +
                     "{\r\n" +
                     "  \"urls\": [\"$url\"]\r\n" +
                     "}\r\n" +
                     "\r\n"
         )
-        val response = api.http().sendRequest(request)
 
-        return@mcpTool response.response().header("location").value()
+        val response = api.http().sendRequest(request)
+        return@mcpTool response.response().header(SCAN_ID_HEADER_FIELD).value()
     }
 
     mcpTool(
