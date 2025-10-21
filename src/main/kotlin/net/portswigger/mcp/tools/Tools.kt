@@ -7,11 +7,13 @@ import burp.api.montoya.core.BurpSuiteEdition
 import burp.api.montoya.http.HttpMode
 import burp.api.montoya.http.HttpService
 import burp.api.montoya.http.message.HttpHeader
+import burp.api.montoya.http.message.HttpRequestResponse
 import burp.api.montoya.http.message.requests.HttpRequest
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import net.portswigger.mcp.config.McpConfig
 import net.portswigger.mcp.schema.toSerializableForm
 import net.portswigger.mcp.security.HistoryAccessSecurity
@@ -158,7 +160,7 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
         }
 
         val apiPath = if (BURP_REST_API_KEY != null) "/$BURP_REST_API_KEY" else ""
-        var request = HttpRequest.httpRequest(
+        var creationRequest = HttpRequest.httpRequest(
             HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),
             "\r\n" +
                     "POST $apiPath/v0.1/scan HTTP/1.1\r\n" +
@@ -170,7 +172,7 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
                     "}\r\n" +
                     "\r\n"
         )
-        request = request.withBody(
+        creationRequest = creationRequest.withBody(
             "\r\n" +
                     "{\r\n" +
                     "  \"urls\": [\"$url\"]\r\n" +
@@ -178,8 +180,28 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
                     "\r\n"
         )
 
-        val response = api.http().sendRequest(request)
-        return@mcpTool response.response().header(SCAN_ID_HEADER_FIELD).value()
+        val creationResponse = api.http().sendRequest(creationRequest)
+        val id = creationResponse.response().header(SCAN_ID_HEADER_FIELD).value()
+
+        var resultResponse: HttpRequestResponse
+        do {
+            Thread.sleep(5000)
+
+            val resultRequest = HttpRequest.httpRequest(
+                HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),
+                "\r\n" +
+                        "GET $apiPath/v0.1/scan/$id HTTP/1.1\r\n" +
+                        "Host: $BURP_REST_API_HOST:$BURP_REST_API_PORT\r\n\r\n"
+            )
+
+            resultResponse = api.http().sendRequest(resultRequest)
+            val state =
+                Json.parseToJsonElement(resultResponse.response().bodyToString()).jsonObject["scan_status"].toString()
+
+            Json.parseToJsonElement(resultResponse.response().bodyToString())
+        } while (state.equals("\"initializing\"") || state.equals("\"crawling\"") || state.equals("\"auditing\""))
+
+        return@mcpTool resultResponse.response().bodyToString()
     }
 
     mcpTool(
