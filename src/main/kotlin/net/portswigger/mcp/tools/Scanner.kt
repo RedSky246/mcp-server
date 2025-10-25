@@ -3,8 +3,7 @@ package net.portswigger.mcp.tools
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.http.HttpService
 import burp.api.montoya.http.message.requests.HttpRequest
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.*
 
 class Scanner(val api: MontoyaApi) {
     val BURP_REST_API_HOST = "127.0.0.1"
@@ -60,7 +59,32 @@ class Scanner(val api: MontoyaApi) {
                 !state.equals("\"paused\"") &&
                 !state.equals("\"auditing\"")
             ) {
-                return body.toString()
+                val issues = body.jsonObject["issue_events"]
+                val resultObjects = mutableListOf<JsonObject>()
+                if (issues is JsonArray) {
+                    for (issue in issues) {
+                        val issueObject = issue.jsonObject["issue"]
+                        if (issueObject != null &&
+                            (issueObject.jsonObject["severity"]!!.toString().equals("\"medium\"") ||
+                                    issueObject.jsonObject["severity"]!!.toString().equals("\"high\""))
+                        ) {
+                            val resultObject = buildJsonObject {
+                                put("name", issueObject.jsonObject["name"]!!)
+                                put("severity", issueObject.jsonObject["severity"]!!)
+                                put("confidence", issueObject.jsonObject["confidence"]!!)
+                                put("issue_background", issueObject.jsonObject["issue_background"]!!)
+                            }
+                            resultObjects.add(resultObject)
+                        }
+                    }
+                }
+                val result = buildJsonArray {
+                    addJsonArray {
+                        for (result in resultObjects) add(result)
+                    }
+                }
+
+                return result.toString()
             }
 
             Thread.sleep(SLEEP_MILLISECONDS)
