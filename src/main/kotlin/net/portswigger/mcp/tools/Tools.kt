@@ -7,13 +7,11 @@ import burp.api.montoya.core.BurpSuiteEdition
 import burp.api.montoya.http.HttpMode
 import burp.api.montoya.http.HttpService
 import burp.api.montoya.http.message.HttpHeader
-import burp.api.montoya.http.message.HttpRequestResponse
 import burp.api.montoya.http.message.requests.HttpRequest
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
 import net.portswigger.mcp.config.McpConfig
 import net.portswigger.mcp.schema.toSerializableForm
 import net.portswigger.mcp.security.HistoryAccessSecurity
@@ -145,63 +143,23 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
         api.utilities().randomUtils().randomString(length, characterSet)
     }
 
-    val BURP_REST_API_HOST = "127.0.0.1"
-    val BURP_REST_API_PORT = 1337
-    val BURP_REST_API_KEY = System.getenv("BURP_REST_API_KEY")
-    val SCAN_ID_HEADER_FIELD = "location"
+
 
     mcpTool<DoActiveScan>("Does an active scan on the input url") {
+        val ktorUrl = io.ktor.http.Url(urlString = url)
+
         val allowed = runBlocking {
-            HttpRequestSecurity.checkHttpRequestPermission(targetHostname, targetPort, config, null, api)
+            HttpRequestSecurity.checkHttpRequestPermission(ktorUrl.host, ktorUrl.port, config, null, api)
         }
         if (!allowed) {
-            api.logging().logToOutput("MCP active scan denied: $targetHostname:$targetPort")
+            api.logging().logToOutput("MCP active scan denied: $ktorUrl.host:$ktorUrl.host")
             return@mcpTool "Active scan denied by Burp Suite"
         }
 
-        val apiPath = if (BURP_REST_API_KEY != null) "/$BURP_REST_API_KEY" else ""
-        var creationRequest = HttpRequest.httpRequest(
-            HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),
-            "\r\n" +
-                    "POST $apiPath/v0.1/scan HTTP/1.1\r\n" +
-                    "Host: $BURP_REST_API_HOST:$BURP_REST_API_PORT\r\n" +
-                    "Content-Type: application/json\r\n" +
-                    "\r\n" +
-                    "{\r\n" +
-                    "  \r\n" +
-                    "}\r\n" +
-                    "\r\n"
-        )
-        creationRequest = creationRequest.withBody(
-            "\r\n" +
-                    "{\r\n" +
-                    "  \"urls\": [\"$url\"]\r\n" +
-                    "}\r\n" +
-                    "\r\n"
-        )
+        val scanner = Scanner(api)
+        val id = scanner.createActiveScan(url)
 
-        val creationResponse = api.http().sendRequest(creationRequest)
-        val id = creationResponse.response().header(SCAN_ID_HEADER_FIELD).value()
-
-        var resultResponse: HttpRequestResponse
-        do {
-            Thread.sleep(5000)
-
-            val resultRequest = HttpRequest.httpRequest(
-                HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),
-                "\r\n" +
-                        "GET $apiPath/v0.1/scan/$id HTTP/1.1\r\n" +
-                        "Host: $BURP_REST_API_HOST:$BURP_REST_API_PORT\r\n\r\n"
-            )
-
-            resultResponse = api.http().sendRequest(resultRequest)
-            val state =
-                Json.parseToJsonElement(resultResponse.response().bodyToString()).jsonObject["scan_status"].toString()
-
-            Json.parseToJsonElement(resultResponse.response().bodyToString())
-        } while (state.equals("\"initializing\"") || state.equals("\"crawling\"") || state.equals("\"auditing\""))
-
-        return@mcpTool resultResponse.response().bodyToString()
+        return@mcpTool scanner.getActiveScanResult(id)
     }
 
     mcpTool(
@@ -439,8 +397,5 @@ data class GetProxyWebsocketHistoryRegex(val regex: String, override val count: 
 
 @Serializable
 data class DoActiveScan(
-    val url: String,
-    override val targetHostname: String,
-    override val targetPort: Int,
-    override val usesHttps: Boolean
-) : HttpServiceParams
+    val url: String
+)
