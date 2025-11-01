@@ -8,6 +8,7 @@ import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.event.*
 import javax.swing.*
+import javax.swing.Box.createVerticalStrut
 import javax.swing.JOptionPane.*
 
 class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
@@ -69,8 +70,28 @@ class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
         val tableContainer = createTableContainer(scrollPane)
         add(tableContainer)
 
+        val autoDenyNonWhitelistHttpTargets = createStandardCheckBox(
+            "Auto-Deny non-whitelist HTTP Targets", config.autoDenyNonWhitelistHttpTargets
+        ) { config.autoDenyNonWhitelistHttpTargets = it }
+        add(autoDenyNonWhitelistHttpTargets)
+        add(createVerticalStrut(Design.Spacing.MD))
+
         val buttonsPanel = createButtonsPanel(targetsList, listModel)
         add(buttonsPanel)
+    }
+
+    private fun createStandardCheckBox(
+        text: String, initialValue: Boolean, onChange: (Boolean) -> Unit
+    ): JCheckBox {
+        return JCheckBox(text).apply {
+            alignmentX = LEFT_ALIGNMENT
+            isSelected = initialValue
+            font = Design.Typography.bodyLarge
+            foreground = Design.Colors.onSurface
+            addItemListener { event ->
+                onChange(event.stateChange == ItemEvent.SELECTED)
+            }
+        }
     }
 
     private fun createTargetsList(listModel: DefaultListModel<String>): JList<String> {

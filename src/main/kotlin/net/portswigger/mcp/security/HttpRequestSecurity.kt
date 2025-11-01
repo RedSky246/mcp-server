@@ -115,6 +115,10 @@ object HttpRequestSecurity {
             return true
         }
 
+        if (config.autoDenyNonWhitelistHttpTargets) {
+            return false
+        }
+
         return approvalHandler.requestApproval(hostname, port, config, requestContent, api)
     }
 }
