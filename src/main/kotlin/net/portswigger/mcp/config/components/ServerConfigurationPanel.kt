@@ -55,7 +55,7 @@ class ServerConfigurationPanel(
         add(configEditingToolingCheckBox)
         add(createVerticalStrut(Design.Spacing.MD))
 
-        val httpRequestApprovalCheckBox = createStandardCheckBox(
+        val httpRequestApprovalCheckBox = Design.createStandardCheckBox(
             "Require approval for HTTP requests", config.requireHttpRequestApproval
         ) { config.requireHttpRequestApproval = it }
         add(httpRequestApprovalCheckBox)
@@ -96,7 +96,7 @@ class ServerConfigurationPanel(
     }
 
     private fun createHistoryAccessApprovalCheckBox(): JCheckBox {
-        return createStandardCheckBox(
+        return Design.createStandardCheckBox(
             "Require approval for history access", config.requireHistoryAccessApproval
         ) { enabled ->
             config.requireHistoryAccessApproval = enabled
@@ -115,20 +115,6 @@ class ServerConfigurationPanel(
         SwingUtilities.invokeLater {
             alwaysAllowHttpHistoryCheckBox.isSelected = config.alwaysAllowHttpHistory
             alwaysAllowWebSocketHistoryCheckBox.isSelected = config.alwaysAllowWebSocketHistory
-        }
-    }
-
-    private fun createStandardCheckBox(
-        text: String, initialValue: Boolean, onChange: (Boolean) -> Unit
-    ): JCheckBox {
-        return JCheckBox(text).apply {
-            alignmentX = LEFT_ALIGNMENT
-            isSelected = initialValue
-            font = Design.Typography.bodyLarge
-            foreground = Design.Colors.onSurface
-            addItemListener { event ->
-                onChange(event.stateChange == ItemEvent.SELECTED)
-            }
         }
     }
 

@@ -70,28 +70,14 @@ class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
         val tableContainer = createTableContainer(scrollPane)
         add(tableContainer)
 
-        val autoDenyNonWhitelistHttpTargets = createStandardCheckBox(
-            "Auto-Deny non-whitelist HTTP Targets", config.autoDenyNonWhitelistHttpTargets
-        ) { config.autoDenyNonWhitelistHttpTargets = it }
+        val autoDenyNonWhitelistHttpTargets = Design.createStandardCheckBox(
+            "Auto-Deny unapproved Targets", config.autoDenyUnapprovedTargets
+        ) { config.autoDenyUnapprovedTargets = it }
         add(autoDenyNonWhitelistHttpTargets)
         add(createVerticalStrut(Design.Spacing.MD))
 
         val buttonsPanel = createButtonsPanel(targetsList, listModel)
         add(buttonsPanel)
-    }
-
-    private fun createStandardCheckBox(
-        text: String, initialValue: Boolean, onChange: (Boolean) -> Unit
-    ): JCheckBox {
-        return JCheckBox(text).apply {
-            alignmentX = LEFT_ALIGNMENT
-            isSelected = initialValue
-            font = Design.Typography.bodyLarge
-            foreground = Design.Colors.onSurface
-            addItemListener { event ->
-                onChange(event.stateChange == ItemEvent.SELECTED)
-            }
-        }
     }
 
     private fun createTargetsList(listModel: DefaultListModel<String>): JList<String> {

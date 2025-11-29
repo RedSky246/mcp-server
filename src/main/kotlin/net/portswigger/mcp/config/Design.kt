@@ -1,6 +1,8 @@
 package net.portswigger.mcp.config
 
 import java.awt.*
+import java.awt.Component.LEFT_ALIGNMENT
+import java.awt.event.ItemEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.geom.RoundRectangle2D
@@ -170,6 +172,20 @@ object Design {
             private fun updateColors() {
                 font = Typography.titleMedium
                 foreground = Colors.onSurface
+            }
+        }
+    }
+
+    fun createStandardCheckBox(
+        text: String, initialValue: Boolean, onChange: (Boolean) -> Unit
+    ): JCheckBox {
+        return JCheckBox(text).apply {
+            alignmentX = LEFT_ALIGNMENT
+            isSelected = initialValue
+            font = Typography.bodyLarge
+            foreground = Colors.onSurface
+            addItemListener { event ->
+                onChange(event.stateChange == ItemEvent.SELECTED)
             }
         }
     }

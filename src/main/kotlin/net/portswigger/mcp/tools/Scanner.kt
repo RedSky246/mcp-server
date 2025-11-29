@@ -15,7 +15,7 @@ class Scanner(val api: MontoyaApi) {
     val SCAN_STATUS_JSON_FIELD = "scan_status"
     val SLEEP_MILLISECONDS: Long = 1000
 
-    fun createActiveScan(url: String): String {
+    fun createScan(url: String, namedConfigurations: List<String>): String {
         var request = HttpRequest.httpRequest(
             HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),
             "\r\n" +
@@ -28,9 +28,22 @@ class Scanner(val api: MontoyaApi) {
                     "}\r\n" +
                     "\r\n"
         )
+
+        var scanConfiguration = ""
+        namedConfigurations.forEachIndexed { index, namedConfiguration ->
+            run {
+                scanConfiguration += "{\"name\": \"$namedConfiguration\", \"type\": \"NamedConfiguration\"}"
+                if ((index + 1) < namedConfigurations.size) {
+                    scanConfiguration += ", "
+                }
+            }
+        }
+        scanConfiguration = "[$scanConfiguration]"
+
         request = request.withBody(
             "\r\n" +
                     "{\r\n" +
+                    "  \"scan_configurations\": $scanConfiguration,\r\n" +
                     "  \"urls\": [\"$url\"]\r\n" +
                     "}\r\n" +
                     "\r\n"
@@ -40,7 +53,7 @@ class Scanner(val api: MontoyaApi) {
         return response.response().header(SCAN_ID_HEADER_FIELD).value()
     }
 
-    fun getActiveScanResult(id: String): String {
+    fun getScanResult(id: String): String {
         while (true) {
             val request = HttpRequest.httpRequest(
                 HttpService.httpService(BURP_REST_API_HOST, BURP_REST_API_PORT, false),

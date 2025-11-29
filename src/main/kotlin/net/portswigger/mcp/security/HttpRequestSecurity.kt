@@ -115,7 +115,7 @@ object HttpRequestSecurity {
             return true
         }
 
-        if (config.autoDenyNonWhitelistHttpTargets) {
+        if (config.autoDenyUnapprovedTargets) {
             return false
         }
 

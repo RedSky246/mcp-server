@@ -37,7 +37,6 @@ class McpConfig(storage: PersistedObject, private val logging: Logging) {
         }
 
     private var _autoApproveTargets by storage.stringList("")
-    var autoDenyNonWhitelistHttpTargets by storage.boolean(false)
     private val targetsChangeListeners = CopyOnWriteArrayList<ListenerRegistration>()
     private val historyAccessChangeListeners = CopyOnWriteArrayList<ListenerRegistration>()
 
@@ -49,6 +48,8 @@ class McpConfig(storage: PersistedObject, private val logging: Logging) {
                 notifyTargetsChanged()
             }
         }
+
+    var autoDenyUnapprovedTargets by storage.boolean(false)
 
     fun addAutoApproveTarget(target: String): Boolean {
         val currentTargets = getAutoApproveTargetsList()
