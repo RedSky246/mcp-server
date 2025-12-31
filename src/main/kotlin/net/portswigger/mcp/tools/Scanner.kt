@@ -53,6 +53,32 @@ class Scanner(val api: MontoyaApi) {
         return response.response().header(SCAN_ID_HEADER_FIELD).value()
     }
 
+    // This function was generated with ChatGPT.
+    fun extractAllRequestResponse(element: JsonElement): List<JsonElement> {
+        val result = mutableListOf<JsonElement>()
+
+        when (element) {
+            is JsonObject -> {
+                for ((key, value) in element) {
+                    if (key == "request_response") {
+                        result.add(value)
+                    }
+                    result.addAll(extractAllRequestResponse(value))
+                }
+            }
+
+            is JsonArray -> {
+                for (item in element) {
+                    result.addAll(extractAllRequestResponse(item))
+                }
+            }
+
+            else -> {}
+        }
+
+        return result
+    }
+
     fun getScanResult(id: String): String {
         while (true) {
             val request = HttpRequest.httpRequest(
@@ -81,11 +107,37 @@ class Scanner(val api: MontoyaApi) {
                             (issueObject.jsonObject["severity"]!!.toString().equals("\"medium\"") ||
                                     issueObject.jsonObject["severity"]!!.toString().equals("\"high\""))
                         ) {
+                            val evidences = issueObject.jsonObject["evidence"]
+
+                            val completeRequests = mutableListOf<String>()
+                            val requestResponses = extractAllRequestResponse(evidences!!)
+                            for (requestResponse in requestResponses) {
+                                val requests = requestResponse.jsonObject["request"]
+                                if (requests is JsonArray) {
+                                    var completeRequest = ""
+                                    for (request in requests) {
+                                        var data = request.jsonObject["data"].toString()
+                                        try {
+                                            data = data.substring(1, data.length - 1)
+                                            data = api.utilities().base64Utils().decode(data).toString()
+                                            completeRequest += data
+                                        } catch (e: Exception) {
+                                            api.logging()
+                                                .logToOutput("Could not decode request, data: $data - error: ${e.message}")
+                                        }
+                                    }
+                                    completeRequests.add(completeRequest)
+                                }
+                            }
+
                             val resultObject = buildJsonObject {
                                 put("name", issueObject.jsonObject["name"]!!)
                                 put("severity", issueObject.jsonObject["severity"]!!)
                                 put("confidence", issueObject.jsonObject["confidence"]!!)
                                 put("issue_background", issueObject.jsonObject["issue_background"]!!)
+                                put("description", issueObject.jsonObject["description"]!!)
+                                put("remediation", issueObject.jsonObject["remediation"]!!)
+                                put("evidence", completeRequests.toString())
                             }
                             resultObjects.add(resultObject)
                         }
