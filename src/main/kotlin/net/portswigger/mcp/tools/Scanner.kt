@@ -130,13 +130,29 @@ class Scanner(val api: MontoyaApi) {
                                 }
                             }
 
+                            val name =
+                                if (issueObject.jsonObject["name"] != null) issueObject.jsonObject["name"]!! else buildJsonObject { }
+                            val severity =
+                                if (issueObject.jsonObject["severity"] != null) issueObject.jsonObject["severity"]!! else buildJsonObject { }
+                            val confidence =
+                                if (issueObject.jsonObject["confidence"] != null) issueObject.jsonObject["confidence"]!! else buildJsonObject { }
+                            val issueBackground =
+                                if (issueObject.jsonObject["issue_background"] != null) issueObject.jsonObject["issue_background"]!! else buildJsonObject { }
+                            val description =
+                                if (issueObject.jsonObject["description"] != null) issueObject.jsonObject["description"]!! else buildJsonObject { }
+                            val remediation =
+                                if (issueObject.jsonObject["remediation"] != null) issueObject.jsonObject["remediation"]!! else buildJsonObject { }
+                            val remediationBackground =
+                                if (issueObject.jsonObject["remediation_background"] != null) issueObject.jsonObject["remediation_background"]!! else buildJsonObject { }
+
                             val resultObject = buildJsonObject {
-                                put("name", issueObject.jsonObject["name"]!!)
-                                put("severity", issueObject.jsonObject["severity"]!!)
-                                put("confidence", issueObject.jsonObject["confidence"]!!)
-                                put("issue_background", issueObject.jsonObject["issue_background"]!!)
-                                put("description", issueObject.jsonObject["description"]!!)
-                                put("remediation", issueObject.jsonObject["remediation"]!!)
+                                put("name", name)
+                                put("severity", severity)
+                                put("confidence", confidence)
+                                put("issue_background", issueBackground)
+                                put("description", description)
+                                put("remediation", remediation)
+                                put("remediation_background", remediationBackground)
                                 put("evidence", completeRequests.toString())
                             }
                             resultObjects.add(resultObject)
