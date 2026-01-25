@@ -145,7 +145,7 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
 
 
 
-    mcpTool<DoScan>("Does an scan on the input url") {
+    mcpTool<DoScan>("Does a scan on the input url") {
         val ktorUrl = io.ktor.http.Url(url)
         val allowed = runBlocking {
             HttpRequestSecurity.checkHttpRequestPermission(ktorUrl.host, ktorUrl.port, config, null, api)

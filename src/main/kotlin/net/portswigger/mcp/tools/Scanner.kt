@@ -53,7 +53,7 @@ class Scanner(val api: MontoyaApi) {
         return response.response().header(SCAN_ID_HEADER_FIELD).value()
     }
 
-    // This function was generated with ChatGPT.
+    // This function is AI generated with OpenAI's ChatGPT.
     fun extractAllRequestResponse(element: JsonElement): List<JsonElement> {
         val result = mutableListOf<JsonElement>()
 
