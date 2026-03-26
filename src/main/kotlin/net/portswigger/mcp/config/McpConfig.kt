@@ -49,6 +49,8 @@ class McpConfig(storage: PersistedObject, private val logging: Logging) {
             }
         }
 
+    var autoDenyUnapprovedTargets by storage.boolean(false)
+
     fun addAutoApproveTarget(target: String): Boolean {
         val currentTargets = getAutoApproveTargetsList()
         if (target.trim().isNotEmpty() && !currentTargets.contains(target.trim())) {

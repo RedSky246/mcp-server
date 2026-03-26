@@ -143,6 +143,24 @@ fun Server.registerTools(api: MontoyaApi, config: McpConfig) {
         api.utilities().randomUtils().randomString(length, characterSet)
     }
 
+
+
+    mcpTool<DoScan>("Does a scan on the input url") {
+        val ktorUrl = io.ktor.http.Url(url)
+        val allowed = runBlocking {
+            HttpRequestSecurity.checkHttpRequestPermission(ktorUrl.host, ktorUrl.port, config, null, api)
+        }
+        if (!allowed) {
+            api.logging().logToOutput("MCP active scan denied: $ktorUrl.host:$ktorUrl.port")
+            return@mcpTool "Active scan denied by Burp Suite"
+        }
+
+        val scanner = Scanner(api)
+        val id = scanner.createScan(url, namedConfigurations)
+
+        return@mcpTool scanner.getScanResult(id)
+    }
+
     mcpTool(
         "output_project_options",
         "Outputs current project-level configuration in JSON format. You can use this to determine the schema for available config options."
@@ -375,3 +393,9 @@ data class GetProxyWebsocketHistory(override val count: Int, override val offset
 @Serializable
 data class GetProxyWebsocketHistoryRegex(val regex: String, override val count: Int, override val offset: Int) :
     Paginated
+
+@Serializable
+data class DoScan(
+    val url: String,
+    val namedConfigurations: List<String>
+)

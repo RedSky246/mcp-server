@@ -8,6 +8,7 @@ import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.event.*
 import javax.swing.*
+import javax.swing.Box.createVerticalStrut
 import javax.swing.JOptionPane.*
 
 class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
@@ -68,6 +69,12 @@ class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
         val scrollPane = createScrollPane(targetsList)
         val tableContainer = createTableContainer(scrollPane)
         add(tableContainer)
+
+        val autoDenyNonWhitelistHttpTargets = Design.createStandardCheckBox(
+            "Auto-Deny unapproved Targets", config.autoDenyUnapprovedTargets
+        ) { config.autoDenyUnapprovedTargets = it }
+        add(autoDenyNonWhitelistHttpTargets)
+        add(createVerticalStrut(Design.Spacing.MD))
 
         val buttonsPanel = createButtonsPanel(targetsList, listModel)
         add(buttonsPanel)
