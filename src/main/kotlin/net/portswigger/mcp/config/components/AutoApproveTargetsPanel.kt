@@ -13,7 +13,6 @@ import javax.swing.JOptionPane.*
 class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
 
     private var listenerHandle: ListenerHandle? = null
-    private var refreshListener: (() -> Unit)? = null
 
     init {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
@@ -59,12 +58,12 @@ class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
         val targetsList = createTargetsList(listModel)
         updateTargetsList(listModel)
 
-        refreshListener = {
+        val refreshListener = {
             SwingUtilities.invokeLater {
                 updateTargetsList(listModel)
             }
         }
-        listenerHandle = config.addTargetsChangeListener(refreshListener!!)
+        listenerHandle = config.addTargetsChangeListener(refreshListener)
 
         val scrollPane = createScrollPane(targetsList)
         val tableContainer = createTableContainer(scrollPane)
@@ -295,7 +294,6 @@ class AutoApproveTargetsPanel(private val config: McpConfig) : JPanel() {
     fun cleanup() {
         listenerHandle?.remove()
         listenerHandle = null
-        refreshListener = null
     }
 
 }

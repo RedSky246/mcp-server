@@ -101,7 +101,7 @@ class ToolsKtTest {
     }
 
     private fun setupHttpHeaderMocks() {
-        every { HttpHeader.httpHeader(any<String>(), any<String>()) } answers {
+        every { HttpHeader.httpHeader(any(), any()) } answers {
             val name = firstArg<String>()
             val value = secondArg<String>()
             mockk<HttpHeader>().also {

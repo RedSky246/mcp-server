@@ -1,34 +1,5 @@
 import java.time.Instant
 
-abstract class EmbedProxyJarTask : DefaultTask() {
-    @get:InputFile
-    abstract val shadowJarFile: RegularFileProperty
-
-    @get:InputDirectory
-    abstract val projectDir: DirectoryProperty
-
-    @get:Inject
-    abstract val execOperations: ExecOperations
-
-    @TaskAction
-    fun embedJar() {
-        val shadowJar = shadowJarFile.get().asFile
-        val libsDir = projectDir.dir("libs").get().asFile
-        val proxyJarFile = File(libsDir, "mcp-proxy-all.jar")
-
-        if (!proxyJarFile.exists()) {
-            throw GradleException("Proxy JAR not found at: ${proxyJarFile.absolutePath}")
-        }
-
-        execOperations.exec {
-            workingDir(projectDir.get().asFile)
-            commandLine("jar", "uf", shadowJar.absolutePath, "-C", libsDir.absolutePath, proxyJarFile.name)
-        }
-
-        logger.lifecycle("Embedded proxy JAR into ${shadowJar.name}")
-    }
-}
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -39,6 +10,10 @@ plugins {
 group = providers.gradleProperty("group").get()
 version = providers.gradleProperty("version").get()
 description = providers.gradleProperty("description").get()
+
+repositories {
+    mavenCentral()
+}
 
 dependencies {
     compileOnly(libs.burp.montoya.api)
@@ -65,8 +40,8 @@ kotlin {
     }
 
     compilerOptions {
-        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
-        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1)
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1)
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         freeCompilerArgs.addAll(
             "-Xjsr305=strict"
@@ -128,12 +103,29 @@ tasks {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
-    register<EmbedProxyJarTask>("embedProxyJar") {
+    register("embedProxyJar") {
         group = "build"
         description = "Embeds the MCP proxy JAR into the shadow JAR"
         dependsOn(shadowJar)
-        shadowJarFile.set(shadowJar.flatMap { it.archiveFile })
-        projectDir.set(layout.projectDirectory)
+
+        notCompatibleWithConfigurationCache("Task references other tasks at execution time")
+
+        doLast {
+            val shadowJarFile = shadowJar.get().archiveFile.get().asFile
+            val libsDir = layout.projectDirectory.dir("libs").asFile
+            val proxyJarFile = File(libsDir, "mcp-proxy-all.jar")
+
+            if (!proxyJarFile.exists()) {
+                throw GradleException("Proxy JAR not found at: ${proxyJarFile.absolutePath}")
+            }
+
+            exec {
+                workingDir(layout.projectDirectory.asFile)
+                commandLine("jar", "uf", shadowJarFile.absolutePath, "-C", libsDir.absolutePath, proxyJarFile.name)
+            }
+
+            logger.lifecycle("Embedded proxy JAR into ${shadowJarFile.name}")
+        }
     }
 
     build {
@@ -147,6 +139,6 @@ tasks {
 }
 
 tasks.wrapper {
-    gradleVersion = "9.2.0"
+    gradleVersion = "8.10"
     distributionType = Wrapper.DistributionType.BIN
 }
