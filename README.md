@@ -1,5 +1,7 @@
 # Burp Suite MCP Server Extension
 
+> This forked repository includes the MCP function to create scans with custom configurations and adds an auto-deny checkbox for non allowed targets.
+
 ## Overview
 
 Integrate Burp Suite with AI Clients using the Model Context Protocol (MCP).
